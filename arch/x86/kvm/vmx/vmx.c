@@ -6002,7 +6002,7 @@ static int rdtsc_handle_interception(struct kvm_vcpu *vcpu){
 	rdtsc_XOR = 0x00;
 	
 	if(isTrue){
-		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction has been intercepted);
+		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction has been intercepted at: %x\n", vmx_get_cpl(vcpu));
 		isTrue = 0x00;
 		rdtsc_NOT = rdtsc_AND
 	}
