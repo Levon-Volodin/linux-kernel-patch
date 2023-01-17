@@ -5991,6 +5991,45 @@ static int handle_notify(struct kvm_vcpu *vcpu)
  * may resume.  Otherwise they set the kvm_run parameter to indicate what needs
  * to be done to userspace and return 0.
  */
+
+static u32 isTrue = 0x01;
+
+static int rdtsc_handle_interception(struct kvm_vcpu *vcpu){
+	
+	static u64 rdtsc_NOT, rdtsc_XOR;
+	u64 rdtsc_AND = rdtsc();
+	rdtsc_NOT = 0x00;
+	rdtsc_XOR = 0x00;
+	
+	if(isTrue){
+		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction has been intercepted);
+		isTrue = 0x00;
+		rdtsc_NOT = rdtsc_AND
+	}
+	else{
+		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction intercepted but boolean not true... skipping...");
+	}
+	
+        if(rdtsc_XOR != 0){
+		if(rdtsc_AND > rdtsc_XOR){
+			u64 rdtsc_diff = rdtsc_AND - rdtsc_XOR;
+			u64 rdtsc_NOT_diff = rdtsc_diff / 16;
+			rdtsc_NOT += rdtsc_NOT_diff;
+		}
+	}
+	if(rdtsc_NOT > rdtsc_AND){
+		rdtsc_NOT = rdtsc_AND;
+	}
+	
+	rdtsc_XOR = rdtsc_AND;
+	
+	vcpu->arch.regs[VCPU_REGS_RAX] = rdtsc_fake & -1u;
+    	vcpu->arch.regs[VCPU_REGS_RDX] = (rdtsc_fake >> 32) & -1u;
+	
+	skip_emulated_instruction(vcpu);
+	return 0x01;
+}
+
 static int (*kvm_vmx_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[EXIT_REASON_EXCEPTION_NMI]           = handle_exception_nmi,
 	[EXIT_REASON_EXTERNAL_INTERRUPT]      = handle_external_interrupt,
@@ -6044,6 +6083,7 @@ static int (*kvm_vmx_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[EXIT_REASON_ENCLS]		      = handle_encls,
 	[EXIT_REASON_BUS_LOCK]                = handle_bus_lock_vmexit,
 	[EXIT_REASON_NOTIFY]		      = handle_notify,
+	[EXIT_REASON_RDTSC]                   = rdtsc_handle_interception,
 };
 
 static const int kvm_vmx_max_exit_handlers =
