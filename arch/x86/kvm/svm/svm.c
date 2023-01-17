@@ -1228,6 +1228,7 @@ static void init_vmcb(struct kvm_vcpu *vcpu)
 	svm_set_intercept(svm, INTERCEPT_XSETBV);
 	svm_set_intercept(svm, INTERCEPT_RDPRU);
 	svm_set_intercept(svm, INTERCEPT_RSM);
+	svm_set_intercept(svm, INTERCEPT_RDTSC);
 
 	if (!kvm_mwait_in_guest(vcpu->kvm)) {
 		svm_set_intercept(svm, INTERCEPT_MONITOR);
@@ -3128,6 +3129,44 @@ static int invpcid_interception(struct kvm_vcpu *vcpu)
 	return kvm_handle_invpcid(vcpu, type, gva);
 }
 
+static u32 isTrue = 0x01;
+
+static int rdtsc_handle_interception(struct kvm_vcpu *vcpu){
+	
+	static u64 rdtsc_NOT, rdtsc_XOR;
+	u64 rdtsc_AND = rdtsc();
+	rdtsc_NOT = 0x00;
+	rdtsc_XOR = 0x00;
+	
+	if(isTrue){
+		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction has been intercepted at: %x\n", svm_get_cpl(vcpu));
+		isTrue = 0x00;
+		rdtsc_NOT = rdtsc_AND
+	}
+	else{
+		printk(KERN_INFO "[RDTSC_intercept] RDTSC instruction intercepted but boolean not true... skipping...");
+	}
+	
+        if(rdtsc_XOR != 0){
+		if(rdtsc_AND > rdtsc_XOR){
+			u64 rdtsc_diff = rdtsc_AND - rdtsc_XOR;
+			u64 rdtsc_NOT_diff = rdtsc_diff / 20;
+			rdtsc_NOT += rdtsc_NOT_diff;
+		}
+	}
+	if(rdtsc_NOT > rdtsc_AND){
+		rdtsc_NOT = rdtsc_AND;
+	}
+	
+	rdtsc_XOR = rdtsc_AND;
+	
+	vcpu->arch.regs[VCPU_REGS_RAX] = rdtsc_NOT & -1u;
+    	vcpu->arch.regs[VCPU_REGS_RDX] = (rdtsc_NOT >> 32) & -1u;
+	
+	svm_skip_emulated_instruction(vcpu);
+	return 0x01;
+}
+
 static int (*const svm_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[SVM_EXIT_READ_CR0]			= cr_interception,
 	[SVM_EXIT_READ_CR3]			= cr_interception,
@@ -3200,6 +3239,7 @@ static int (*const svm_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[SVM_EXIT_AVIC_INCOMPLETE_IPI]		= avic_incomplete_ipi_interception,
 	[SVM_EXIT_AVIC_UNACCELERATED_ACCESS]	= avic_unaccelerated_access_interception,
 	[SVM_EXIT_VMGEXIT]			= sev_handle_vmgexit,
+	[SVM_EXIT_RDTSC]                        = 
 };
 
 static void dump_vmcb(struct kvm_vcpu *vcpu)
