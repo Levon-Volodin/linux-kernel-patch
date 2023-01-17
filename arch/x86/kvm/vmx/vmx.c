@@ -6023,8 +6023,8 @@ static int rdtsc_handle_interception(struct kvm_vcpu *vcpu){
 	
 	rdtsc_XOR = rdtsc_AND;
 	
-	vcpu->arch.regs[VCPU_REGS_RAX] = rdtsc_fake & -1u;
-    	vcpu->arch.regs[VCPU_REGS_RDX] = (rdtsc_fake >> 32) & -1u;
+	vcpu->arch.regs[VCPU_REGS_RAX] = rdtsc_NOT & -1u;
+    	vcpu->arch.regs[VCPU_REGS_RDX] = (rdtsc_NOT >> 32) & -1u;
 	
 	skip_emulated_instruction(vcpu);
 	return 0x01;
